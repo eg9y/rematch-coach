@@ -10,11 +10,208 @@ body {
   font-family: sans-serif;
 }
 
+/* Unified window styles */
+.unified main {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+/* Tab navigation styles */
+.tab-navigation {
+  display: flex;
+  background-color: #2a2a2a;
+  border-bottom: 2px solid #333;
+  padding: 0 20px;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  color: #ccc;
+  padding: 15px 20px;
+  cursor: pointer;
+  font-size: 14px;
+  border-bottom: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.tab-btn:hover {
+  color: #fff;
+  background-color: #333;
+}
+
+.tab-btn.active {
+  color: #4CAF50;
+  border-bottom-color: #4CAF50;
+}
+
+/* Tab content styles */
+.tab-content {
+  display: none;
+  padding: 20px;
+  flex: 1;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* Settings styles */
+.settings-header {
+  margin-bottom: 30px;
+}
+
+.settings-header h1 {
+  color: #4CAF50;
+  margin: 0 0 10px 0;
+  font-size: 24px;
+}
+
+.settings-header p {
+  color: #ccc;
+  margin: 0;
+}
+
+.settings-section {
+  max-width: 600px;
+}
+
+.setting-item {
+  margin-bottom: 25px;
+  padding: 20px;
+  background-color: #2a2a2a;
+  border-radius: 8px;
+  border: 1px solid #333;
+}
+
+.setting-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.setting-label input[type="checkbox"] {
+  margin-right: 12px;
+  width: 18px;
+  height: 18px;
+  accent-color: #4CAF50;
+}
+
+.setting-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 5px;
+}
+
+.setting-description {
+  color: #ccc;
+  font-size: 14px;
+  margin: 8px 0 0 0;
+}
+
+.setting-select {
+  width: 100%;
+  padding: 8px 12px;
+  background-color: #333;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.setting-select:focus {
+  outline: none;
+  border-color: #4CAF50;
+}
+
+/* Live game styles */
+.live-game-header {
+  margin-bottom: 20px;
+}
+
+.live-game-header h1 {
+  color: #4CAF50;
+  margin: 0 0 10px 0;
+  font-size: 24px;
+}
+
+.live-game-header p {
+  color: #ccc;
+  margin: 0 0 15px 0;
+}
+
+.hotkey-info {
+  padding: 10px;
+  background-color: #2a2a2a;
+  border-radius: 4px;
+  border: 1px solid #333;
+  display: inline-block;
+}
+
+.hotkey-info kbd {
+  background-color: #4CAF50;
+  color: #000;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-weight: bold;
+}
+
+/* Modal styles for queue alert */
+.modal.small .modal-content {
+  max-width: 400px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.btn.primary {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.btn.primary:hover {
+  background-color: #45a049;
+}
+
+.btn.secondary {
+  background-color: #666;
+  color: white;
+}
+
+.btn.secondary:hover {
+  background-color: #555;
+}
+
+.btn:not(.primary):not(.secondary) {
+  background-color: #333;
+  color: white;
+}
+
+.btn:not(.primary):not(.secondary):hover {
+  background-color: #444;
+}
+
 main {
   flex: auto;
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow-y: auto;
 }
 
 a {
@@ -92,4 +289,429 @@ a {
 #ad {
   display: inline-block;
   margin-right: 10px;
+}
+
+/* Rematch Coach Styles */
+.coach-header {
+  background-image: url("../img/background.svg");
+  padding: 40px;
+  text-align: center;
+  color: white;
+}
+
+.coach-header h1 {
+  font-family: "Roboto Mono", sans-serif;
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+
+.coach-header p {
+  font-size: 16px;
+  color: #d5d5d5;
+}
+
+.matches-container {
+  flex: 1;
+  padding: 20px;
+  background-color: #2a2a2a;
+}
+
+.match-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.match-item {
+  background-color: #3a3a3a;
+  border-radius: 8px;
+  padding: 20px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  color: white;
+}
+
+.match-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.match-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.match-outcome {
+  font-size: 18px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.match-outcome.victory {
+  color: #4CAF50;
+}
+
+.match-outcome.defeat {
+  color: #f44336;
+}
+
+.match-outcome.draw {
+  color: #FFC107;
+}
+
+.match-date {
+  font-size: 14px;
+  color: #999;
+}
+
+.match-details {
+  margin-bottom: 10px;
+}
+
+.match-score {
+  font-size: 24px;
+  text-align: center;
+  margin: 10px 0;
+}
+
+.match-info {
+  font-size: 14px;
+  color: #ccc;
+}
+
+.goal-indicators {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.goal-indicator {
+  background-color: #555;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.goal-indicator.team {
+  background-color: #4CAF50;
+}
+
+.goal-indicator.opponent {
+  background-color: #f44336;
+}
+
+/* Video Modal Styles */
+.modal {
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background-color: #2a2a2a;
+  padding: 20px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 1000px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Enhanced Video Modal */
+.video-modal {
+  max-width: 1400px;
+  width: 95%;
+  max-height: 95vh;
+  padding: 25px;
+}
+
+.video-layout {
+  display: flex;
+  gap: 20px;
+  height: 100%;
+}
+
+.video-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.video-container {
+  position: relative;
+  background-color: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  height: 60vh;
+  min-height: 400px;
+}
+
+/* Plyr video player styles */
+.plyr {
+  width: 100%;
+  height: 60vh;
+  min-height: 400px;
+  border-radius: 8px;
+  overflow: hidden;
+  --plyr-color-main: #4CAF50;
+  --plyr-video-control-color: #ffffff;
+  --plyr-video-control-color-hover: #ffffff;
+  --plyr-video-control-background-hover: #4CAF50;
+  --plyr-video-controls-background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.75));
+  --plyr-menu-background: rgba(42, 42, 42, 0.95);
+  --plyr-menu-color: #ffffff;
+  --plyr-tooltip-background: rgba(42, 42, 42, 0.9);
+  --plyr-tooltip-color: #ffffff;
+}
+
+.plyr--video {
+  background-color: black;
+}
+
+.plyr__video-wrapper {
+  background-color: black;
+}
+
+#videoPlayer {
+  width: 100%;
+  height: 100%;
+  background-color: black;
+}
+
+.video-timeline-overlay {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
+  height: 6px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.timeline-events {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+.timeline-event {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 4px;
+  border-radius: 2px;
+  cursor: pointer;
+  pointer-events: all;
+  transition: transform 0.2s;
+}
+
+.timeline-event:hover {
+  transform: scaleY(1.5);
+}
+
+.timeline-event.team-goal {
+  background-color: #4CAF50;
+}
+
+.timeline-event.opponent-goal {
+  background-color: #f44336;
+}
+
+.timeline-event-tooltip {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  display: none;
+  z-index: 1;
+}
+
+.timeline-event:hover .timeline-event-tooltip {
+  display: block;
+}
+
+.video-sidebar {
+  width: 300px;
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  padding: 20px;
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+.sidebar-header {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #333;
+}
+
+.sidebar-header h3 {
+  color: white;
+  margin: 0 0 10px 0;
+  font-size: 18px;
+}
+
+.events-summary {
+  color: #999;
+  font-size: 14px;
+}
+
+.timestamps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.timestamp-item {
+  background-color: #2a2a2a;
+  padding: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: white;
+  transition: all 0.2s;
+  border-left: 4px solid transparent;
+}
+
+.timestamp-item:hover {
+  background-color: #333;
+  transform: translateX(4px);
+}
+
+.timestamp-item.team-goal {
+  border-left-color: #4CAF50;
+}
+
+.timestamp-item.opponent-goal {
+  border-left-color: #f44336;
+}
+
+.timestamp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.timestamp-time {
+  font-weight: bold;
+  color: #4CAF50;
+  font-size: 14px;
+}
+
+.timestamp-label {
+  font-size: 14px;
+  color: #ccc;
+}
+
+.timestamp-score {
+  font-size: 12px;
+  color: #999;
+  font-style: italic;
+}
+
+.close {
+  position: absolute;
+  right: 25px;
+  top: 25px;
+  font-size: 28px;
+  font-weight: bold;
+  color: #aaa;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.close:hover {
+  color: white;
+}
+
+#modalTitle {
+  color: white;
+  margin-bottom: 20px;
+  font-size: 20px;
+  padding-right: 50px;
+}
+
+/* Streaming Controls */
+.streaming-controls {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+}
+
+.streaming-btn {
+  padding: 10px 20px;
+  background: #8B5CF6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.streaming-btn:hover {
+  background: #7C3AED;
+}
+
+.streaming-btn:active {
+  transform: scale(0.98);
+}
+
+.streaming-btn.secondary {
+  background: #4B5563;
+}
+
+.streaming-btn.secondary:hover {
+  background: #374151;
+}
+
+.streaming-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.streaming-status {
+  font-size: 14px;
+  color: #9CA3AF;
+  margin-left: 10px;
+}
+
+.streaming-status.recording {
+  color: #EF4444;
+  font-weight: 600;
+}
+
+.streaming-status.recording::before {
+  content: "●";
+  color: #EF4444;
+  margin-right: 5px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }

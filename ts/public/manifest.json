@@ -2,12 +2,12 @@
   "manifest_version": 1,
   "type": "WebApp",
   "meta": {
-    "name": "Sample App",
+    "name": "Rematch Coach",
     "author": "Overwolf",
-    "version": "3.0.3",
+    "version": "1.0.0",
     "minimum-overwolf-version": "0.160.0",
-    "description": "An example app for developers new to Overwolf",
-    "dock_button_title": "Sample - TS",
+    "description": "Auto-record and analyze your Rematch gameplay",
+    "dock_button_title": "Rematch Coach",
     "icon": "icons/IconMouseOver.png",
     "icon_gray": "icons/IconMouseNormal.png",
     "launcher_icon": "icons/desktop-icon.ico",
@@ -15,13 +15,20 @@
   },
   "permissions": [
     "Hotkeys",
-    "GameInfo"
+    "GameInfo",
+    "GameEvents",
+    "VideoCaptureSettings",
+    "FileSystem",
+    "Storage",
+    "Streaming",
+    "DesktopStreaming",
+    "Extensions"
   ],
   "data": {
     "start_window": "background",
     "hotkeys": {
       "sample_app_ts_showhide": {
-        "title": "Show/Hide In-Game Window",
+        "title": "Show/Hide Rematch Coach",
         "action-type": "toggle",
         "default": "Ctrl+F"
       }
@@ -42,33 +49,20 @@
     "windows": {
       "background": {
         "file": "background.html",
-        "background_optimization": true,
-        "is_background_page": true
+        "background_optimization": false,
+        "is_background_page": true,
+        "allow_local_file_access": true
       },
-      "desktop": {
-        "file": "desktop.html",
+      "unified": {
+        "file": "unified.html",
         "desktop_only": true,
         "native_window": true,
         "resizable": true,
         "transparent": true,
         "override_on_update": true,
-        "size": {
-          "width": 1212,
-          "height": 699
-        },
-        "min_size": {
-          "width": 1212,
-          "height": 699
-        }
-      },
-      "in_game": {
-        "file": "in_game.html",
-        "in_game_only": true,
+        "allow_local_file_access": true,
         "focus_game_takeover": "ReleaseOnHidden",
         "focus_game_takeover_release_hotkey": "sample_app_ts_showhide",
-        "resizable": true,
-        "transparent": true,
-        "override_on_update": true,
         "size": {
           "width": 1212,
           "height": 699
@@ -82,57 +76,18 @@
     "game_targeting": {
       "type": "dedicated",
       "game_ids": [
-        21216,
-        7764,
-        5426,
-        21634,
-        8032,
-        10844,
-        10906,
-        10826,
-        21404,
-        7212,
-        21640,
-        7314,
-        21626,
-        8954
+         26120
       ]
     },
     "game_events": [
-      21216,
-      7764,
-      5426,
-      21634,
-      8032,
-      10844,
-      10906,
-      10826,
-      21404,
-      7212,
-      21640,
-      7314,
-      21626,
-      8954
+         26120
     ],
     "launch_events": [
       {
         "event": "GameLaunch",
         "event_data": {
           "game_ids": [
-            21216,
-            7764,
-            5426,
-            21634,
-            8032,
-            10844,
-            10906,
-            10826,
-            21404,
-            7212,
-            21640,
-            7314,
-            21626,
-            8954
+         26120
           ]
         },
         "start_minimized": true

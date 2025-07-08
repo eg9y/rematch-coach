@@ -8,8 +8,7 @@ const
 module.exports = env => ({
     entry: {
         background: './src/background/background.ts',
-        desktop: './src/desktop/desktop.ts',
-        in_game: './src/in_game/in_game.ts'
+        unified: './src/unified/unified.ts'
     },
     devtool: 'inline-source-map',
     module: {
@@ -39,14 +38,9 @@ module.exports = env => ({
             chunks: ['background']
         }),
         new HtmlWebpackPlugin({
-            template: './src/desktop/desktop.html',
-            filename: path.resolve(__dirname, './dist/desktop.html'),
-            chunks: ['desktop']
-        }),
-        new HtmlWebpackPlugin({
-            template: './src/in_game/in_game.html',
-            filename: path.resolve(__dirname, './dist/in_game.html'),
-            chunks: ['in_game']
+            template: './src/unified/unified.html',
+            filename: path.resolve(__dirname, './dist/unified.html'),
+            chunks: ['unified']
         }),
         new OverwolfPlugin(env)
     ]

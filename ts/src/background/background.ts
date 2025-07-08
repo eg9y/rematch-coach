@@ -5,6 +5,7 @@ import {
 } from '@overwolf/overwolf-api-ts';
 
 import { kWindowNames, kGameClassIds } from "../consts";
+import { VideoCaptureService } from '../services/VideoCaptureService';
 
 import RunningGameInfo = overwolf.games.RunningGameInfo;
 import AppLaunchTriggeredEvent = overwolf.extensions.AppLaunchTriggeredEvent;
@@ -19,11 +20,14 @@ class BackgroundController {
   private static _instance: BackgroundController;
   private _windows: Record<string, OWWindow> = {};
   private _gameListener: OWGameListener;
+  private _videoCaptureService: VideoCaptureService;
 
   private constructor() {
     // Populating the background controller's window dictionary
-    this._windows[kWindowNames.desktop] = new OWWindow(kWindowNames.desktop);
-    this._windows[kWindowNames.inGame] = new OWWindow(kWindowNames.inGame);
+    this._windows[kWindowNames.unified] = new OWWindow(kWindowNames.unified);
+
+    // Initialize video capture service
+    this._videoCaptureService = VideoCaptureService.getInstance();
 
     // When a a supported game game is started or is ended, toggle the app's windows
     this._gameListener = new OWGameListener({
@@ -34,6 +38,9 @@ class BackgroundController {
     overwolf.extensions.onAppLaunchTriggered.addListener(
       e => this.onAppLaunchTriggered(e)
     );
+
+    // Expose video capture service to window context for other windows to access
+    (window as any).videoCaptureService = this._videoCaptureService;
   };
 
   // Implementing the Singleton design pattern
@@ -50,11 +57,24 @@ class BackgroundController {
   public async run() {
     this._gameListener.start();
 
-    const currWindowName = (await this.isSupportedGameRunning())
-      ? kWindowNames.inGame
-      : kWindowNames.desktop;
-
-    this._windows[currWindowName].restore();
+    // Use unified window instead of separate desktop/in-game windows
+    this._windows[kWindowNames.unified].restore();
+    
+    // Periodically check game status and update unified window
+    setInterval(async () => {
+      const gameInfo = await OWGames.getRunningGameInfo();
+      const isGameRunning = gameInfo && gameInfo.isRunning && this.isSupportedGame(gameInfo);
+      
+      // Get the unified window instance and update its game status
+      overwolf.windows.obtainDeclaredWindow(kWindowNames.unified, (result) => {
+        if (result.success && result.window) {
+          const unifiedWindow = (result.window as any).nativeWindow;
+          if (unifiedWindow && unifiedWindow.UnifiedWindow) {
+            unifiedWindow.UnifiedWindow.instance().checkGameStatus();
+          }
+        }
+      });
+    }, 5000); // Check every 5 seconds
   }
 
   private async onAppLaunchTriggered(e: AppLaunchTriggeredEvent) {
@@ -64,13 +84,8 @@ class BackgroundController {
       return;
     }
 
-    if (await this.isSupportedGameRunning()) {
-      this._windows[kWindowNames.desktop].close();
-      this._windows[kWindowNames.inGame].restore();
-    } else {
-      this._windows[kWindowNames.desktop].restore();
-      this._windows[kWindowNames.inGame].close();
-    }
+    // Always use unified window
+    this._windows[kWindowNames.unified].restore();
   }
 
   private toggleWindows(info: RunningGameInfo) {
@@ -78,13 +93,8 @@ class BackgroundController {
       return;
     }
 
-    if (info.isRunning) {
-      this._windows[kWindowNames.desktop].close();
-      this._windows[kWindowNames.inGame].restore();
-    } else {
-      this._windows[kWindowNames.desktop].restore();
-      this._windows[kWindowNames.inGame].close();
-    }
+    // Unified window stays open regardless of game state
+    this._windows[kWindowNames.unified].restore();
   }
 
   private async isSupportedGameRunning(): Promise<boolean> {

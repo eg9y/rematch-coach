@@ -9,6 +9,8 @@
     "strict": true,
     "noImplicitAny": false,
     "strictNullChecks": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "types": [
       "@overwolf/types"
     ],

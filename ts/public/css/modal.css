@@ -12,7 +12,7 @@
 }
 
 /* Modal Content/Box */
-.modal-content {
+.modal-content:not(.video-modal) {
   background-color: #949392;
   margin: 10% auto; /* 15% from the top and centered */
   padding: 45px;
@@ -24,13 +24,13 @@
   box-sizing: border-box;
 }
 
-.modal-content h3 {
+.modal-content:not(.video-modal) h3 {
   margin: 0px;
   font-size: 25px;
   line-height: 29px;
 }
 
-.modal-content p {
+.modal-content:not(.video-modal) p {
   font-size: 15px;
   line-height: 21px;
 }

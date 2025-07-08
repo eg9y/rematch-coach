@@ -233,13 +233,29 @@ export const kGamesFeatures = new Map<number, string[]>([
       'match_info'
     ]
   ],
+  // Rematch
+  [
+    26120,
+    [
+      'gep_internal',
+      'game_info',
+      'match_info',
+      'match_start',
+      'match_end',
+      'team_goal',
+      'opponent_goal',
+      'kill',
+      'death',
+      'assist'
+    ]
+  ],
 ]);
 
 export const kGameClassIds = Array.from(kGamesFeatures.keys());
 
 export const kWindowNames = {
-  inGame: 'in_game',
-  desktop: 'desktop'
+  unified: 'unified',
+  background: 'background'
 };
 
 export const kHotkeys = {

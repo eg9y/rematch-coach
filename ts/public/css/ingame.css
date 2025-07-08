@@ -138,3 +138,63 @@ button.logCopy:hover {
   background: #8d8d8d;
   color: #ffffff;
 }
+
+/* Streaming Controls for In-Game */
+.streaming-controls-ingame {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.streaming-btn-ingame {
+  padding: 8px 16px;
+  background: #8B5CF6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.streaming-btn-ingame:hover {
+  background: #7C3AED;
+}
+
+.streaming-btn-ingame:active {
+  transform: scale(0.98);
+}
+
+.streaming-btn-ingame:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.streaming-status-ingame {
+  font-size: 13px;
+  color: #9CA3AF;
+  margin-left: 10px;
+}
+
+.streaming-status-ingame.recording {
+  color: #EF4444;
+  font-weight: 600;
+}
+
+.streaming-status-ingame.recording::before {
+  content: "●";
+  color: #EF4444;
+  margin-right: 5px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}

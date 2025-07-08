@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="../../css/general.css" />
+  <link rel="stylesheet" href="../../css/header.css" />
+  <link rel="stylesheet" href="../../css/desktop.css" />
+  <link rel="stylesheet" href="../../css/ingame.css" />
+  <link rel="stylesheet" href="../../css/modal.css" />
+  <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+  <title>Rematch Coach - Unified Window</title>
+</head>
+
+<body class="unified">
+  <!-- -------------------------------- Header ------------------------------- -->
+  <header id="header" class="app-header">
+    <img src="../../img/header_icon.svg" />
+    <h1>Rematch Coach</h1>
+    <div class="window-controls-group">
+      <button id="minimizeButton" class="window-control window-control-minimize" />
+      <button id="maximizeButton" class="window-control window-control-maximize" />
+      <button id="closeButton" class="window-control window-control-close" />
+    </div>
+  </header>
+
+  <!-- --------------------------------- Main -------------------------------- -->
+  <main>
+    <!-- Tab Navigation -->
+    <div class="tab-navigation">
+      <button id="historyTab" class="tab-btn active">Match History</button>
+      <button id="liveTab" class="tab-btn">Live Game</button>
+      <button id="settingsTab" class="tab-btn">Settings</button>
+    </div>
+
+    <!-- Match History Tab -->
+    <div id="historyTabContent" class="tab-content active">
+      <div class="coach-header">
+        <h1>Match History</h1>
+        <p>Your Rematch gameplay sessions are automatically recorded with goal highlights</p>
+        <div class="streaming-controls">
+          <button id="openFolderBtn" class="streaming-btn secondary">Open Recordings Folder</button>
+          <p class="auto-recording-note">Recordings are automatically started and stopped with matches</p>
+        </div>
+      </div>
+      
+      <div class="matches-container">
+        <div id="matchList" class="match-list">
+          <!-- Match items will be dynamically added here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Game Tab -->
+    <div id="liveTabContent" class="tab-content">
+      <div class="live-game-header">
+        <h1>Live Game Data</h1>
+        <p>Real-time game events and information</p>
+        <div class="hotkey-info">
+          <span>Show/Hide Hotkey: <kbd id="hotkey"></kbd></span>
+        </div>
+      </div>
+      
+      <div id="logs">
+        <div id="events" class="logColumn">
+          <h1>Game Events</h1>
+          <div id="eventsLog" class="dataText"></div>
+        </div>
+        <div id="infoUpdates" class="logColumn">
+          <h1>Info Updates</h1>
+          <div id="infoLog" class="dataText"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Tab -->
+    <div id="settingsTabContent" class="tab-content">
+      <div class="settings-header">
+        <h1>Settings</h1>
+        <p>Configure your recording preferences</p>
+      </div>
+      
+      <div class="settings-section">
+        <div class="setting-item">
+          <label class="setting-label">
+            <input type="checkbox" id="autoRecordToggle" checked>
+            <span class="setting-title">Auto-record matches</span>
+          </label>
+          <p class="setting-description">Automatically start recording when a match begins</p>
+        </div>
+        
+        <div class="setting-item">
+          <label class="setting-label">
+            <input type="checkbox" id="queueAlertsToggle" checked>
+            <span class="setting-title">Queue recording alerts</span>
+          </label>
+          <p class="setting-description">Show alerts when entering queue if auto-recording is disabled</p>
+        </div>
+        
+        <div class="setting-item">
+          <div class="setting-title">Recording Quality</div>
+          <select id="recordingQuality" class="setting-select">
+            <option value="720p">720p</option>
+            <option value="1080p" selected>1080p</option>
+            <option value="1440p">1440p</option>
+          </select>
+          <p class="setting-description">Video recording quality</p>
+        </div>
+        
+        <div class="setting-item">
+          <div class="setting-title">Recording Duration</div>
+          <select id="recordingDuration" class="setting-select">
+            <option value="30">30 seconds</option>
+            <option value="60" selected>1 minute</option>
+            <option value="120">2 minutes</option>
+            <option value="300">5 minutes</option>
+            <option value="full">Full match</option>
+          </select>
+          <p class="setting-description">Duration of goal highlight recordings</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Video Player Modal -->
+    <div id="videoModal" class="modal" style="display: none;">
+      <div class="modal-content video-modal">
+        <span class="close" id="closeModal">&times;</span>
+        <h2 id="modalTitle">Match Replay</h2>
+        <div class="video-layout">
+          <div class="video-main">
+            <div class="video-container">
+              <video id="videoPlayer" controls crossorigin playsinline>
+                <source src="" type="video/mp4" />
+              </video>
+              <div class="video-timeline-overlay">
+                <div class="timeline-events" id="timelineEvents"></div>
+              </div>
+            </div>
+          </div>
+          <div class="video-sidebar">
+            <div class="sidebar-header">
+              <h3>Goal Events</h3>
+              <div class="events-summary">
+                <span id="eventsCount">0 events</span>
+              </div>
+            </div>
+            <div id="timestampsList" class="timestamps-list">
+              <!-- Timestamps will be added here -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Queue Alert Modal -->
+    <div id="queueAlertModal" class="modal" style="display: none;">
+      <div class="modal-content small">
+        <h2>Start Recording?</h2>
+        <p>You're entering a game queue. Would you like to start recording?</p>
+        <div class="modal-actions">
+          <button id="startRecordingBtn" class="btn primary">Start Recording</button>
+          <button id="skipRecordingBtn" class="btn secondary">Skip</button>
+          <button id="alwaysRecordBtn" class="btn">Always Record</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Standard Google Universal Analytics code
+    (function (i, s, o, g, r, a, m) {
+      i['GoogleAnalyticsObject'] = r; i[r] = i[r] || function () {
+        (i[r].q = i[r].q || []).push(arguments)
+      },
+        i[r].l = 1 * new Date(); a = s.createElement(o),
+          m = s.getElementsByTagName(o)[0]; a.async = 1; a.src = g; m.parentNode.insertBefore(a, m)
+      // Note: https protocol here
+    })(window, document, 'script', 'https://www.google-analytics.com/analytics.js', 'ga');
+
+    ga('create', 'UA-144253676-3', 'auto');
+
+    // Removes failing protocol check. @see: http://stackoverflow.com/a/22152353/1958200
+    ga('set', 'checkProtocolTask', function () { });
+    ga('require', 'displayfeatures');
+    ga('send', 'pageview', '/unified.html');
+  </script>
+</body>
+
+</html>
