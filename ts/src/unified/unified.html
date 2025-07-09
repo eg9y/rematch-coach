@@ -35,17 +35,35 @@
 
     <!-- Match History Tab -->
     <div id="historyTabContent" class="tab-content active">
-      <div class="coach-header">
-        <h1>Match History</h1>
-        <p>Your Rematch gameplay sessions are automatically recorded with goal highlights</p>
-        <div class="streaming-controls">
-          <button id="openFolderBtn" class="streaming-btn secondary">Open Recordings Folder</button>
-          <p class="auto-recording-note">Recordings are automatically started and stopped with matches</p>
+      <div class="match-history-header">
+        <div class="header-top">
+          <h1>Match History</h1>
+          <div class="view-controls">
+            <button id="rowViewBtn" class="view-btn active" data-view="row">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <rect x="2" y="3" width="12" height="2" rx="1"/>
+                <rect x="2" y="7" width="12" height="2" rx="1"/>
+                <rect x="2" y="11" width="12" height="2" rx="1"/>
+              </svg>
+            </button>
+            <button id="gridViewBtn" class="view-btn" data-view="grid">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <rect x="2" y="2" width="5" height="5" rx="1"/>
+                <rect x="9" y="2" width="5" height="5" rx="1"/>
+                <rect x="2" y="9" width="5" height="5" rx="1"/>
+                <rect x="9" y="9" width="5" height="5" rx="1"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="header-controls">
+          <button id="openFolderBtn" class="action-btn">Open Recordings Folder</button>
+          <span class="recording-note">Configure recording in Settings</span>
         </div>
       </div>
       
       <div class="matches-container">
-        <div id="matchList" class="match-list">
+        <div id="matchList" class="match-list row-view">
           <!-- Match items will be dynamically added here -->
         </div>
       </div>
@@ -54,21 +72,50 @@
     <!-- Live Game Tab -->
     <div id="liveTabContent" class="tab-content">
       <div class="live-game-header">
-        <h1>Live Game Data</h1>
-        <p>Real-time game events and information</p>
-        <div class="hotkey-info">
+        <h1 id="liveGameTitle">Live Game Data</h1>
+        <p id="liveGameDescription">Real-time game events and information</p>
+        <div class="hotkey-info" id="hotkeyInfo">
           <span>Show/Hide Hotkey: <kbd id="hotkey"></kbd></span>
         </div>
       </div>
       
-      <div id="logs">
-        <div id="events" class="logColumn">
-          <h1>Game Events</h1>
-          <div id="eventsLog" class="dataText"></div>
+      <!-- Debug Mode: Show logs -->
+      <div id="debugLogs" style="display: none;">
+        <div id="logs">
+          <div id="events" class="logColumn">
+            <h1>Game Events</h1>
+            <div id="eventsLog" class="dataText"></div>
+          </div>
+          <div id="infoUpdates" class="logColumn">
+            <h1>Info Updates</h1>
+            <div id="infoLog" class="dataText"></div>
+          </div>
         </div>
-        <div id="infoUpdates" class="logColumn">
-          <h1>Info Updates</h1>
-          <div id="infoLog" class="dataText"></div>
+      </div>
+      
+      <!-- Production Mode: Coming soon message -->
+      <div id="prodComingSoon" style="display: none;">
+        <div class="coming-soon-container">
+          <div class="coming-soon-content">
+            <div class="coming-soon-icon">🎮</div>
+            <h2>Live Game Features Coming Soon</h2>
+            <p>Real-time game analysis, statistics, and insights will be available in future updates.</p>
+            <div class="coming-soon-features">
+              <div class="feature-item">
+                <span class="feature-icon">📊</span>
+                <span>Live Statistics</span>
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon">🎯</span>
+                <span>Performance Analysis</span>
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon">💡</span>
+                <span>Coaching Tips</span>
+              </div>
+            </div>
+            <p class="coming-soon-note">For now, focus on building your match history with recorded games!</p>
+          </div>
         </div>
       </div>
     </div>
@@ -82,19 +129,26 @@
       
       <div class="settings-section">
         <div class="setting-item">
-          <label class="setting-label">
-            <input type="checkbox" id="autoRecordToggle" checked>
-            <span class="setting-title">Auto-record matches</span>
-          </label>
-          <p class="setting-description">Automatically start recording when a match begins</p>
-        </div>
-        
-        <div class="setting-item">
-          <label class="setting-label">
-            <input type="checkbox" id="queueAlertsToggle" checked>
-            <span class="setting-title">Queue recording alerts</span>
-          </label>
-          <p class="setting-description">Show alerts when entering queue if auto-recording is disabled</p>
+          <div class="setting-title">Recording Mode</div>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="recordingMode" value="auto" checked>
+              <span>Auto-record matches</span>
+            </label>
+            <p class="setting-description">Automatically start recording when a match begins</p>
+            
+            <label class="radio-label">
+              <input type="radio" name="recordingMode" value="alert">
+              <span>Alert on game mode selection</span>
+            </label>
+            <p class="setting-description">Show recording prompt when selecting a game mode (Ranked, QuickMatch, etc.)</p>
+            
+            <label class="radio-label">
+              <input type="radio" name="recordingMode" value="disabled">
+              <span>Don't record</span>
+            </label>
+            <p class="setting-description">Never record matches automatically</p>
+          </div>
         </div>
         
         <div class="setting-item">
@@ -132,9 +186,6 @@
               <video id="videoPlayer" controls crossorigin playsinline>
                 <source src="" type="video/mp4" />
               </video>
-              <div class="video-timeline-overlay">
-                <div class="timeline-events" id="timelineEvents"></div>
-              </div>
             </div>
           </div>
           <div class="video-sidebar">
@@ -156,7 +207,7 @@
     <div id="queueAlertModal" class="modal" style="display: none;">
       <div class="modal-content small">
         <h2>Start Recording?</h2>
-        <p>You're entering a game queue. Would you like to start recording?</p>
+        <p>You've selected a game mode. Would you like to record this match?</p>
         <div class="modal-actions">
           <button id="startRecordingBtn" class="btn primary">Start Recording</button>
           <button id="skipRecordingBtn" class="btn secondary">Skip</button>

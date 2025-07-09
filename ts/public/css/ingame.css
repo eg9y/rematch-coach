@@ -116,7 +116,7 @@ h1 {
 }
 
 .highlight {
-  color: #00defa;
+  color: #0080FF;
 }
 
 button.logCopy {
@@ -149,7 +149,7 @@ button.logCopy:hover {
 
 .streaming-btn-ingame {
   padding: 8px 16px;
-  background: #8B5CF6;
+  background: #00FF80;
   color: white;
   border: none;
   border-radius: 4px;
@@ -160,7 +160,7 @@ button.logCopy:hover {
 }
 
 .streaming-btn-ingame:hover {
-  background: #7C3AED;
+  background: #00E070;
 }
 
 .streaming-btn-ingame:active {

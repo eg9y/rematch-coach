@@ -44,7 +44,7 @@ export class MatchSessionService {
     return MatchSessionService.instance;
   }
   
-  public async startMatch(playerInfo: any): Promise<void> {
+  public async startMatch(playerInfo: any, startRecording: boolean = true): Promise<void> {
     if (this.currentMatch) {
       console.warn('Match already in progress');
       return;
@@ -65,21 +65,25 @@ export class MatchSessionService {
     console.log('Match started:', this.currentMatch);
     console.log('Player info received:', playerInfo);
     
-    // Start video capture with detailed error handling
-    try {
-      console.log('Attempting to start auto-recording for match:', matchId);
-      const videoPath = await this.videoCaptureService.startCapture(`RematchCoach/${matchId}`);
-      this.currentMatch.videoPath = videoPath;
-      console.log('Auto-recording started successfully, video path:', videoPath);
-    } catch (error) {
-      console.error('Failed to start auto-recording:', error);
-      console.error('Error details:', {
-        message: error.message,
-        stack: error.stack
-      });
-      
-      // Continue with match tracking even if video fails
-      console.log('Continuing match tracking without video recording');
+    // Start video capture if requested
+    if (startRecording) {
+      try {
+        console.log('Attempting to start auto-recording for match:', matchId);
+        const videoPath = await this.videoCaptureService.startCapture(`RematchCoach/${matchId}`);
+        this.currentMatch.videoPath = videoPath;
+        console.log('Auto-recording started successfully, video path:', videoPath);
+      } catch (error) {
+        console.error('Failed to start auto-recording:', error);
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack
+        });
+        
+        // Continue with match tracking even if video fails
+        console.log('Continuing match tracking without video recording');
+      }
+    } else {
+      console.log('Match started without recording (will be started later if user chooses)');
     }
   }
   
@@ -222,6 +226,27 @@ export class MatchSessionService {
   
   public getCurrentMatch(): MatchSession | null {
     return this.currentMatch;
+  }
+  
+  public async startRecordingForCurrentMatch(): Promise<void> {
+    if (!this.currentMatch) {
+      console.warn('No active match to start recording for');
+      return;
+    }
+    
+    if (this.currentMatch.videoPath) {
+      console.warn('Recording already started for this match');
+      return;
+    }
+    
+    try {
+      console.log('Starting recording for existing match:', this.currentMatch.id);
+      const videoPath = await this.videoCaptureService.startCapture(`RematchCoach/${this.currentMatch.id}`);
+      this.currentMatch.videoPath = videoPath;
+      console.log('Recording started successfully for existing match, video path:', videoPath);
+    } catch (error) {
+      console.error('Failed to start recording for existing match:', error);
+    }
   }
 
   public async updateMatchVideoPath(matchId: string, filePath: string): Promise<void> {

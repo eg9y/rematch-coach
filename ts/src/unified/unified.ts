@@ -12,10 +12,16 @@ import Plyr from "plyr";
 
 import WindowState = overwolf.windows.WindowStateEx;
 
+// Recording mode enum
+enum RecordingMode {
+  AUTO_RECORD = 'auto',
+  QUEUE_ALERT = 'alert',
+  DISABLED = 'disabled'
+}
+
 // Settings interface
 interface AppSettings {
-  autoRecord: boolean;
-  queueAlerts: boolean;
+  recordingMode: RecordingMode;
   recordingQuality: string;
   recordingDuration: string;
 }
@@ -32,6 +38,8 @@ class UnifiedWindow extends AppWindow {
   private _currentScore: any = { left_score: 0, right_score: 0 };
   private _isGameRunning: boolean = false;
   private _settings: AppSettings;
+  private _lastGameMode: string | null = null;
+  private _hasShownAlertForSession: boolean = false;
   
   // UI Elements
   private matchListElement: HTMLElement;
@@ -39,7 +47,6 @@ class UnifiedWindow extends AppWindow {
   private videoPlayer: HTMLVideoElement;
   private plyrInstance: Plyr | null = null;
   private timestampsList: HTMLElement;
-  private timelineEvents: HTMLElement;
   private eventsCountElement: HTMLElement;
   private closeModalBtn: HTMLElement;
   private modalTitle: HTMLElement;
@@ -58,9 +65,13 @@ class UnifiedWindow extends AppWindow {
   private liveTabContent: HTMLElement;
   private settingsTabContent: HTMLElement;
   
+  // View control elements
+  private rowViewBtn: HTMLElement;
+  private gridViewBtn: HTMLElement;
+  private currentView: 'row' | 'grid' = 'row';
+  
   // Settings elements
-  private autoRecordToggle: HTMLInputElement;
-  private queueAlertsToggle: HTMLInputElement;
+  private recordingModeRadios: NodeListOf<HTMLInputElement>;
   private recordingQuality: HTMLSelectElement;
   private recordingDuration: HTMLSelectElement;
 
@@ -69,8 +80,7 @@ class UnifiedWindow extends AppWindow {
     
     // Initialize settings
     this._settings = {
-      autoRecord: true,
-      queueAlerts: true,
+      recordingMode: RecordingMode.AUTO_RECORD,
       recordingQuality: '1080p',
       recordingDuration: '60'
     };
@@ -78,7 +88,7 @@ class UnifiedWindow extends AppWindow {
     this.loadSettings();
     
     console.log('Unified window initialized');
-    this.setupDebugPanel();
+    console.log('Build mode:', process.env.DEBUG_MODE ? 'DEBUG' : 'PRODUCTION');
     
     this._matchSessionService = MatchSessionService.getInstance();
     
@@ -91,10 +101,12 @@ class UnifiedWindow extends AppWindow {
     this.initializePlyr();
     this.setupEventListeners();
     this.setupVideoCaptureLogging();
+    this.setupBuildMode();
     
     this.loadMatches();
     this.setToggleHotkeyBehavior();
     this.setToggleHotkeyText();
+    this.loadViewPreference();
     
     // Check if game is running and set initial tab
     this.checkGameStatus();
@@ -119,12 +131,15 @@ class UnifiedWindow extends AppWindow {
     this.liveTabContent = document.getElementById('liveTabContent')!;
     this.settingsTabContent = document.getElementById('settingsTabContent')!;
     
+    // View control elements
+    this.rowViewBtn = document.getElementById('rowViewBtn')!;
+    this.gridViewBtn = document.getElementById('gridViewBtn')!;
+    
     // Match history elements
     this.matchListElement = document.getElementById('matchList')!;
     this.videoModal = document.getElementById('videoModal')!;
     this.videoPlayer = document.getElementById('videoPlayer') as HTMLVideoElement;
     this.timestampsList = document.getElementById('timestampsList')!;
-    this.timelineEvents = document.getElementById('timelineEvents')!;
     this.eventsCountElement = document.getElementById('eventsCount')!;
     this.closeModalBtn = document.getElementById('closeModal')!;
     this.modalTitle = document.getElementById('modalTitle')!;
@@ -135,8 +150,7 @@ class UnifiedWindow extends AppWindow {
     this._infoLog = document.getElementById('infoLog')!;
     
     // Settings elements
-    this.autoRecordToggle = document.getElementById('autoRecordToggle')! as HTMLInputElement;
-    this.queueAlertsToggle = document.getElementById('queueAlertsToggle')! as HTMLInputElement;
+    this.recordingModeRadios = document.querySelectorAll('input[name="recordingMode"]')! as NodeListOf<HTMLInputElement>;
     this.recordingQuality = document.getElementById('recordingQuality')! as HTMLSelectElement;
     this.recordingDuration = document.getElementById('recordingDuration')! as HTMLSelectElement;
     
@@ -190,12 +204,18 @@ class UnifiedWindow extends AppWindow {
       tooltips: {
         controls: true,
         seek: true
-      }
+      },
     });
     
     // Set up Plyr event listeners
+    this.setupPlyrEventListeners();
+  }
+
+  private setupPlyrEventListeners(): void {
+    if (!this.plyrInstance) return;
+
     this.plyrInstance.on('loadedmetadata', () => {
-      console.log('Plyr: Video metadata loaded');
+      console.log('Plyr: Video metadata loaded, duration:', this.plyrInstance.duration);
     });
     
     this.plyrInstance.on('error', (event) => {
@@ -206,6 +226,15 @@ class UnifiedWindow extends AppWindow {
     this.plyrInstance.on('ready', () => {
       console.log('Plyr: Player ready');
     });
+    
+    this.plyrInstance.on('canplay', () => {
+      console.log('Plyr: Video can play');
+    });
+    
+    this.plyrInstance.on('loadstart', () => {
+      console.log('Plyr: Load start');
+    });
+    
   }
 
   private setupEventListeners(): void {
@@ -213,6 +242,10 @@ class UnifiedWindow extends AppWindow {
     this.historyTab.addEventListener('click', () => this.switchTab('history'));
     this.liveTab.addEventListener('click', () => this.switchTab('live'));
     this.settingsTab.addEventListener('click', () => this.switchTab('settings'));
+    
+    // View controls
+    this.rowViewBtn.addEventListener('click', () => this.switchView('row'));
+    this.gridViewBtn.addEventListener('click', () => this.switchView('grid'));
     
     // Video modal
     this.closeModalBtn.addEventListener('click', () => this.closeVideoModal());
@@ -228,14 +261,13 @@ class UnifiedWindow extends AppWindow {
     });
     
     // Settings
-    this.autoRecordToggle.addEventListener('change', () => {
-      this._settings.autoRecord = this.autoRecordToggle.checked;
-      this.saveSettings();
-    });
-    
-    this.queueAlertsToggle.addEventListener('change', () => {
-      this._settings.queueAlerts = this.queueAlertsToggle.checked;
-      this.saveSettings();
+    this.recordingModeRadios.forEach(radio => {
+      radio.addEventListener('change', () => {
+        if (radio.checked) {
+          this._settings.recordingMode = radio.value as RecordingMode;
+          this.saveSettings();
+        }
+      });
     });
     
     this.recordingQuality.addEventListener('change', () => {
@@ -255,8 +287,18 @@ class UnifiedWindow extends AppWindow {
     
     startRecordingBtn.addEventListener('click', () => {
       this.hideQueueAlert();
-      // Start recording for this session
+      // Start recording for this session only
       console.log('Starting recording for this session');
+      
+      // If match already started, start recording immediately
+      if (this._matchSessionService.getCurrentMatch()) {
+        console.log('Match already in progress, starting recording now');
+        // Match already exists, start recording for it
+        this._matchSessionService.startRecordingForCurrentMatch();
+      } else {
+        // Store a temporary flag to start recording when match begins
+        (window as any).tempRecordingEnabled = true;
+      }
     });
     
     skipRecordingBtn.addEventListener('click', () => {
@@ -268,8 +310,8 @@ class UnifiedWindow extends AppWindow {
     alwaysRecordBtn.addEventListener('click', () => {
       this.hideQueueAlert();
       // Enable auto-recording permanently
-      this._settings.autoRecord = true;
-      this.autoRecordToggle.checked = true;
+      this._settings.recordingMode = RecordingMode.AUTO_RECORD;
+      this.updateSettingsUI();
       this.saveSettings();
       console.log('Auto-recording enabled');
     });
@@ -298,9 +340,30 @@ class UnifiedWindow extends AppWindow {
     }
   }
 
+  private switchView(viewType: 'row' | 'grid'): void {
+    this.currentView = viewType;
+    
+    // Update button states
+    this.rowViewBtn.classList.toggle('active', viewType === 'row');
+    this.gridViewBtn.classList.toggle('active', viewType === 'grid');
+    
+    // Update match list classes
+    this.matchListElement.classList.remove('row-view', 'grid-view');
+    this.matchListElement.classList.add(`${viewType}-view`);
+    
+    // Re-render matches with new view
+    this.loadMatches();
+    
+    // Save preference
+    localStorage.setItem('matchHistoryView', viewType);
+  }
+
   private updateSettingsUI(): void {
-    this.autoRecordToggle.checked = this._settings.autoRecord;
-    this.queueAlertsToggle.checked = this._settings.queueAlerts;
+    // Update recording mode radio buttons
+    this.recordingModeRadios.forEach(radio => {
+      radio.checked = radio.value === this._settings.recordingMode;
+    });
+    
     this.recordingQuality.value = this._settings.recordingQuality;
     this.recordingDuration.value = this._settings.recordingDuration;
   }
@@ -308,12 +371,65 @@ class UnifiedWindow extends AppWindow {
   private loadSettings(): void {
     const savedSettings = localStorage.getItem('rematchCoachSettings');
     if (savedSettings) {
-      this._settings = { ...this._settings, ...JSON.parse(savedSettings) };
+      const parsed = JSON.parse(savedSettings);
+      
+      // Handle migration from old settings format
+      if ('autoRecord' in parsed && 'queueAlerts' in parsed) {
+        if (parsed.autoRecord) {
+          parsed.recordingMode = RecordingMode.AUTO_RECORD;
+        } else if (parsed.queueAlerts) {
+          parsed.recordingMode = RecordingMode.QUEUE_ALERT;
+        } else {
+          parsed.recordingMode = RecordingMode.DISABLED;
+        }
+        delete parsed.autoRecord;
+        delete parsed.queueAlerts;
+      }
+      
+      this._settings = { ...this._settings, ...parsed };
     }
   }
 
   private saveSettings(): void {
     localStorage.setItem('rematchCoachSettings', JSON.stringify(this._settings));
+  }
+
+  private loadViewPreference(): void {
+    const savedView = localStorage.getItem('matchHistoryView') as 'row' | 'grid';
+    if (savedView && (savedView === 'row' || savedView === 'grid')) {
+      this.switchView(savedView);
+    }
+  }
+
+  private setupBuildMode(): void {
+    const isDebugMode = process.env.DEBUG_MODE;
+    const debugLogsElement = document.getElementById('debugLogs')!;
+    const prodComingSoonElement = document.getElementById('prodComingSoon')!;
+    const liveGameTitle = document.getElementById('liveGameTitle')!;
+    const liveGameDescription = document.getElementById('liveGameDescription')!;
+    const hotkeyInfo = document.getElementById('hotkeyInfo')!;
+    
+    console.log('DEBUG: process.env.DEBUG_MODE =', process.env.DEBUG_MODE);
+    console.log('DEBUG: process.env.PROD_MODE =', process.env.PROD_MODE);
+    console.log('DEBUG: isDebugMode =', isDebugMode);
+    
+    if (isDebugMode) {
+      // Debug mode: Show logs and debug information
+      console.log('DEBUG: Setting up debug mode UI');
+      debugLogsElement.style.display = 'block';
+      prodComingSoonElement.style.display = 'none';
+      liveGameTitle.textContent = 'Live Game Data (Debug)';
+      liveGameDescription.textContent = 'Real-time game events and debug information';
+      hotkeyInfo.style.display = 'block';
+    } else {
+      // Production mode: Show coming soon message
+      console.log('DEBUG: Setting up production mode UI');
+      debugLogsElement.style.display = 'none';
+      prodComingSoonElement.style.display = 'block';
+      liveGameTitle.textContent = 'Live Game';
+      liveGameDescription.textContent = 'Advanced live game features';
+      hotkeyInfo.style.display = 'none';
+    }
   }
 
   public async checkGameStatus(): Promise<void> {
@@ -341,6 +457,13 @@ class UnifiedWindow extends AppWindow {
     // Don't start if already running
     if (this._gameEventsListener && this._isGameRunning) {
       console.log('Game events listener already running, skipping initialization');
+      return;
+    }
+    
+    // Only start game events in debug mode
+    const isDebugMode = process.env.DEBUG_MODE;
+    if (!isDebugMode) {
+      console.log('Game events disabled in production mode');
       return;
     }
     
@@ -394,13 +517,33 @@ class UnifiedWindow extends AppWindow {
       if (info.game_info.player_id) {
         this._currentPlayerInfo.player_id = info.game_info.player_id;
       }
-      if (info.game_info.game_mode) {
-        this._currentPlayerInfo.game_mode = info.game_info.game_mode;
+      
+      // Handle scene changes
+      if (info.game_info.scene) {
+        console.log(`Scene changed to: ${info.game_info.scene}`);
+        if (info.game_info.scene === 'lobby') {
+          // Reset alert flag when returning to lobby
+          this._hasShownAlertForSession = false;
+          this._lastGameMode = null;
+          console.log('Reset alert flag - returned to lobby');
+        }
       }
       
-      // Check for queue state
-      if (info.game_info.scene === 'queue' && this._settings.queueAlerts && !this._settings.autoRecord) {
-        this.showQueueAlert();
+      if (info.game_info.game_mode) {
+        const newGameMode = info.game_info.game_mode;
+        this._currentPlayerInfo.game_mode = newGameMode;
+        
+        // Check if game mode changed and we should show alert
+        if (this._lastGameMode !== newGameMode && 
+            newGameMode !== 'Custom' && // Don't show for custom games
+            this._settings.recordingMode === RecordingMode.QUEUE_ALERT &&
+            !this._hasShownAlertForSession) {
+          console.log(`Game mode changed from ${this._lastGameMode} to ${newGameMode}, showing queue alert`);
+          this.showQueueAlert();
+          this._hasShownAlertForSession = true;
+        }
+        
+        this._lastGameMode = newGameMode;
       }
       
       if (info.game_info.scene === 'ingame' && !this._matchSessionService.getCurrentMatch()) {
@@ -439,13 +582,29 @@ class UnifiedWindow extends AppWindow {
       switch (event.name) {
         case 'match_start':
           console.log('Match start event detected');
-          if (this._settings.autoRecord) {
+          
+          // Fallback: Show alert if in alert mode and haven't shown it yet
+          if (this._settings.recordingMode === RecordingMode.QUEUE_ALERT && !this._hasShownAlertForSession) {
+            console.log('Showing queue alert as fallback on match_start');
+            // Start the match session first (without recording)
+            this._matchSessionService.startMatch(this._currentPlayerInfo, false);
+            this.showQueueAlert();
+            this._hasShownAlertForSession = true;
+            // Don't start recording yet - wait for user response
+          } else if (this._settings.recordingMode === RecordingMode.AUTO_RECORD || (window as any).tempRecordingEnabled) {
+            // Check if we should record (auto-record mode or temporary session recording)
             this._matchSessionService.startMatch(this._currentPlayerInfo);
+            // Clear temporary flag after use
+            if ((window as any).tempRecordingEnabled) {
+              delete (window as any).tempRecordingEnabled;
+            }
           }
           return true;
           
         case 'match_end':
           console.log('Match end event detected');
+          // Reset session alert flag when match ends
+          this._hasShownAlertForSession = false;
           return true;
           
         case 'team_goal':
@@ -472,48 +631,25 @@ class UnifiedWindow extends AppWindow {
 
   private showQueueAlert(): void {
     this.queueAlertModal.style.display = 'flex';
+    
+    // Bring window to front and restore if minimized
+    overwolf.windows.bringToFront(kWindowNames.unified, true, (result) => {
+      if (!result.success) {
+        console.error('Failed to bring window to front:', result.error);
+      }
+    });
+    
+    overwolf.windows.restore(kWindowNames.unified, (result) => {
+      if (!result.success) {
+        console.error('Failed to restore window:', result.error);
+      }
+    });
   }
 
   private hideQueueAlert(): void {
     this.queueAlertModal.style.display = 'none';
   }
 
-  private setupDebugPanel(): void {
-    const debugDiv = document.createElement('div');
-    debugDiv.id = 'debug-panel-unified';
-    debugDiv.style.cssText = `
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      width: 300px;
-      max-height: 200px;
-      background: rgba(0, 0, 0, 0.9);
-      color: #00ff00;
-      font-family: monospace;
-      font-size: 12px;
-      padding: 10px;
-      border-radius: 5px;
-      overflow-y: auto;
-      z-index: 10000;
-      border: 1px solid #333;
-    `;
-    debugDiv.innerHTML = '<strong>DEBUG LOG (Unified Window) - Press F7 to toggle</strong><br>';
-    document.body.appendChild(debugDiv);
-    
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'F7') {
-        debugDiv.style.display = debugDiv.style.display === 'none' ? 'block' : 'none';
-      }
-    });
-    
-    const originalLog = console.log;
-    console.log = (...args) => {
-      originalLog.apply(console, args);
-      const logLine = args.join(' ') + '<br>';
-      debugDiv.innerHTML += logLine;
-      debugDiv.scrollTop = debugDiv.scrollHeight;
-    };
-  }
 
   private setupVideoCaptureLogging(): void {
     if (this._videoCaptureService && this._videoCaptureService.addLogCallback) {
@@ -548,25 +684,42 @@ class UnifiedWindow extends AppWindow {
     
     const teamGoals = match.goals.filter(g => g.type === 'team_goal').length;
     const opponentGoals = match.goals.filter(g => g.type === 'opponent_goal').length;
+    const outcome = match.outcome || 'In Progress';
+    const score = match.finalScore ? `${match.finalScore.left} - ${match.finalScore.right}` : '0 - 0';
     
-    matchDiv.innerHTML = `
-      <div class="match-header">
-        <span class="match-outcome ${match.outcome || ''}">${match.outcome || 'In Progress'}</span>
-        <span class="match-date">${this.formatDate(match.startTime)}</span>
-      </div>
-      <div class="match-details">
-        <div class="match-score">${match.finalScore ? `${match.finalScore.left} - ${match.finalScore.right}` : '0 - 0'}</div>
+    if (this.currentView === 'row') {
+      matchDiv.innerHTML = `
+        <div class="match-outcome ${outcome.toLowerCase().replace(' ', '-')}">${outcome}</div>
+        <div class="match-score">${score}</div>
         <div class="match-info">
-          <p>Player: ${match.playerName}</p>
-          <p>Mode: ${match.gameMode}</p>
-          <p>Duration: ${this.formatDuration(match.startTime, match.endTime)}</p>
+          <span class="match-player">${match.playerName}</span>
+          <span class="match-mode">${match.gameMode}</span>
+          <span>${this.formatDuration(match.startTime, match.endTime)}</span>
         </div>
         <div class="goal-indicators">
-          ${teamGoals > 0 ? `<span class="goal-indicator team">${teamGoals} Team Goals</span>` : ''}
-          ${opponentGoals > 0 ? `<span class="goal-indicator opponent">${opponentGoals} Opponent Goals</span>` : ''}
+          ${teamGoals > 0 ? `<span class="goal-indicator team">${teamGoals}T</span>` : ''}
+          ${opponentGoals > 0 ? `<span class="goal-indicator opponent">${opponentGoals}O</span>` : ''}
         </div>
-      </div>
-    `;
+        <div class="match-date">${this.formatDate(match.startTime)}</div>
+      `;
+    } else {
+      matchDiv.innerHTML = `
+        <div class="match-header">
+          <span class="match-outcome ${outcome.toLowerCase().replace(' ', '-')}">${outcome}</span>
+          <span class="match-date">${this.formatDate(match.startTime)}</span>
+        </div>
+        <div class="match-score">${score}</div>
+        <div class="match-info">
+          <div class="match-player">${match.playerName}</div>
+          <div class="match-mode">${match.gameMode}</div>
+          <div>${this.formatDuration(match.startTime, match.endTime)}</div>
+        </div>
+        <div class="goal-indicators">
+          ${teamGoals > 0 ? `<span class="goal-indicator team">${teamGoals} Team</span>` : ''}
+          ${opponentGoals > 0 ? `<span class="goal-indicator opponent">${opponentGoals} Opp</span>` : ''}
+        </div>
+      `;
+    }
     
     matchDiv.addEventListener('click', () => {
       this.openVideoModal(match);
@@ -591,6 +744,9 @@ class UnifiedWindow extends AppWindow {
     const videoFilePath = await this.findVideoFile(match);
     console.log('Found video file path:', videoFilePath);
     
+    // Create markers from goals
+    const markers = this.createMarkersFromGoals(match.goals);
+    
     if (videoFilePath) {
       const videoUrl = this.getVideoUrl(videoFilePath);
       console.log("Generated video URL:", videoUrl);
@@ -605,20 +761,26 @@ class UnifiedWindow extends AppWindow {
             type: 'video/mp4'
           }]
         };
+        
+        // Wait for the video to load before setting markers
+        this.plyrInstance.once('loadedmetadata', () => {
+          this.addMarkersToProgressBar(markers);
+        });
       }
+      
+      // Display timestamps in sidebar
+      this.displayTimestamps(match.goals, match.startTime);
     } else {
       this.showSimulatedVideoMessage(match);
+      // Still display timestamps for simulated videos
+      this.displayTimestamps(match.goals, match.startTime);
     }
     
-    // Add a small delay to ensure video metadata is loaded
-    setTimeout(() => {
-      this.displayTimestamps(match.goals, match.startTime);
-    }, 100);
     this.videoModal.style.display = 'flex';
   }
 
   private cleanupVideoEventListeners(): void {
-    // Plyr handles its own event listeners, so we don't need to manually remove them
+    // Plyr handles its own cleanup when source is changed
     // Just keep this method for compatibility
   }
 
@@ -631,8 +793,13 @@ class UnifiedWindow extends AppWindow {
       this.plyrInstance.currentTime = 0;
     }
     
-    // Clean up event listeners
-    this.cleanupVideoEventListeners();
+    // Clean up markers
+    const existingMarkers = document.querySelectorAll('.plyr-marker');
+    existingMarkers.forEach(marker => marker.remove());
+    
+    // Clear timestamps list
+    this.timestampsList.innerHTML = '';
+    this.eventsCountElement.textContent = '0 events';
     
     // Show video player and hide any message divs
     this.videoPlayer.style.display = 'block';
@@ -650,7 +817,6 @@ class UnifiedWindow extends AppWindow {
 
   private displayTimestamps(goals: GoalEvent[], matchStartTime: number): void {
     this.timestampsList.innerHTML = '';
-    this.timelineEvents.innerHTML = '';
     
     // Update events count
     this.eventsCountElement.textContent = `${goals.length} ${goals.length === 1 ? 'event' : 'events'}`;
@@ -659,9 +825,6 @@ class UnifiedWindow extends AppWindow {
       this.timestampsList.innerHTML = '<p style="color: #999;">No goals in this match</p>';
       return;
     }
-    
-    // Calculate video duration for timeline positioning
-    const videoDuration = this.plyrInstance?.duration || 600; // Default to 10 minutes if not available
     
     goals.forEach((goal, index) => {
       const timeInSeconds = Math.floor(goal.gameTime / 1000);
@@ -688,37 +851,83 @@ class UnifiedWindow extends AppWindow {
       });
       
       this.timestampsList.appendChild(timestampDiv);
-      
-      // Create timeline event marker
-      const timelineEvent = document.createElement('div');
-      timelineEvent.className = `timeline-event ${goal.type.replace('_', '-')}`;
-      
-      // Position based on time percentage
-      const timelinePosition = (timeInSeconds / videoDuration) * 100;
-      timelineEvent.style.left = `${Math.min(98, timelinePosition)}%`;
-      
-      // Add tooltip
-      const tooltip = document.createElement('div');
-      tooltip.className = 'timeline-event-tooltip';
-      tooltip.textContent = `${formattedTime} - ${goal.type === 'team_goal' ? 'Team Goal' : 'Opponent Goal'}`;
-      timelineEvent.appendChild(tooltip);
-      
-      timelineEvent.addEventListener('click', () => {
-        const seekTime = Math.max(0, timeInSeconds - 5);
-        if (this.plyrInstance) {
-          this.plyrInstance.currentTime = seekTime;
-          this.plyrInstance.play();
-        }
-      });
-      
-      this.timelineEvents.appendChild(timelineEvent);
     });
+  }
+
+  private createMarkersFromGoals(goals: GoalEvent[]): Array<{time: number, label: string}> {
+    return goals.map(goal => {
+      const timeInSeconds = Math.floor(goal.gameTime / 1000);
+      const formattedTime = this.formatTime(timeInSeconds);
+      const goalType = goal.type === 'team_goal' ? 'Team Goal' : 'Opponent Goal';
+      
+      return {
+        time: timeInSeconds,
+        label: `${formattedTime} - ${goalType} (${goal.score.left} - ${goal.score.right})`
+      };
+    });
+  }
+
+  private addMarkersToProgressBar(markers: Array<{time: number, label: string}>): void {
+    if (!this.plyrInstance || !markers.length) return;
     
-    // Update timeline when video metadata loads
-    if (this.plyrInstance) {
-      this.plyrInstance.on('loadedmetadata', () => {
-        this.updateTimelineEvents(goals);
+    try {
+      const progressElement = document.querySelector('.plyr__progress');
+      const duration = this.plyrInstance.duration;
+      
+      if (!progressElement || !duration) {
+        console.log('Progress element or duration not available, retrying in 500ms');
+        setTimeout(() => this.addMarkersToProgressBar(markers), 500);
+        return;
+      }
+      
+      // Remove existing markers
+      const existingMarkers = progressElement.querySelectorAll('.plyr-marker');
+      existingMarkers.forEach(marker => marker.remove());
+      
+      // Add new markers
+      markers.forEach(marker => {
+        const markerElement = document.createElement('span');
+        markerElement.className = 'plyr-marker';
+        markerElement.style.cssText = `
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          width: 3px;
+          background: #0080FF;
+          left: ${(marker.time / duration) * 100}%;
+          cursor: pointer;
+          z-index: 10;
+          border-radius: 1px;
+          transition: background 0.2s ease;
+        `;
+        markerElement.title = marker.label;
+        
+        // Add hover effect
+        markerElement.addEventListener('mouseenter', () => {
+          markerElement.style.background = '#00BFFF';
+          markerElement.style.width = '4px';
+        });
+        
+        markerElement.addEventListener('mouseleave', () => {
+          markerElement.style.background = '#0080FF';
+          markerElement.style.width = '3px';
+        });
+        
+        // Add click handler to seek to marker time
+        markerElement.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (this.plyrInstance) {
+            this.plyrInstance.currentTime = Math.max(0, marker.time - 5); // Start 5 seconds before
+            this.plyrInstance.play();
+          }
+        });
+        
+        progressElement.appendChild(markerElement);
       });
+      
+      console.log(`Added ${markers.length} markers to progress bar`);
+    } catch (error) {
+      console.log('Error adding markers to progress bar:', error);
     }
   }
 
@@ -854,7 +1063,19 @@ class UnifiedWindow extends AppWindow {
 
   private formatDate(timestamp: number): string {
     const date = new Date(timestamp);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    const now = new Date();
+    const diffTime = now.getTime() - timestamp;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+      return 'Today ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (diffDays === 1) {
+      return 'Yesterday ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (diffDays < 7) {
+      return `${diffDays} days ago`;
+    } else {
+      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
   }
 
   private formatDuration(startTime: number, endTime?: number): string {
@@ -873,42 +1094,6 @@ class UnifiedWindow extends AppWindow {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   }
 
-  private updateTimelineEvents(goals: GoalEvent[]): void {
-    const videoDuration = this.plyrInstance?.duration;
-    if (!videoDuration) return;
-
-    // Clear existing timeline events
-    this.timelineEvents.innerHTML = '';
-
-    goals.forEach((goal, index) => {
-      const timeInSeconds = Math.floor(goal.gameTime / 1000);
-      const formattedTime = this.formatTime(timeInSeconds);
-
-      // Create timeline event marker
-      const timelineEvent = document.createElement('div');
-      timelineEvent.className = `timeline-event ${goal.type.replace('_', '-')}`;
-
-      // Position based on time percentage
-      const timelinePosition = (timeInSeconds / videoDuration) * 100;
-      timelineEvent.style.left = `${Math.min(98, timelinePosition)}%`;
-
-      // Add tooltip
-      const tooltip = document.createElement('div');
-      tooltip.className = 'timeline-event-tooltip';
-      tooltip.textContent = `${formattedTime} - ${goal.type === 'team_goal' ? 'Team Goal' : 'Opponent Goal'}`;
-      timelineEvent.appendChild(tooltip);
-
-      timelineEvent.addEventListener('click', () => {
-        const seekTime = Math.max(0, timeInSeconds - 5);
-        if (this.plyrInstance) {
-          this.plyrInstance.currentTime = seekTime;
-          this.plyrInstance.play();
-        }
-      });
-
-      this.timelineEvents.appendChild(timelineEvent);
-    });
-  }
 
   private async setToggleHotkeyText() {
     const gameClassId = await this.getCurrentGameClassId();

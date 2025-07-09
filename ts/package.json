@@ -4,9 +4,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "webpack --mode=development --env makeOpk",
-    "dev": "webpack --watch --mode=development",
-    "watch": "webpack --watch --mode=development"
+    "build": "npm run build:debug",
+    "build:debug": "webpack --mode=development --env makeOpk --env debugMode",
+    "build:prod": "webpack --mode=production --env makeOpk --env prodMode",
+    "dev": "webpack --watch --mode=development --env debugMode",
+    "dev:debug": "webpack --watch --mode=development --env debugMode",
+    "dev:prod": "webpack --watch --mode=development --env prodMode",
+    "watch": "webpack --watch --mode=development --env debugMode"
   },
   "keywords": [],
   "author": "",
