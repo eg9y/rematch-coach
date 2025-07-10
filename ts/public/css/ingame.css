@@ -12,7 +12,6 @@ main {
   display: flex;
   flex: 1;
   position: relative;
-  padding: 38px;
 }
 
 h1 {

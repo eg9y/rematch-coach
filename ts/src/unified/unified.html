@@ -35,36 +35,81 @@
 
     <!-- Match History Tab -->
     <div id="historyTabContent" class="tab-content active">
-      <div class="match-history-header">
-        <div class="header-top">
-          <h1>Match History</h1>
-          <div class="view-controls">
-            <button id="rowViewBtn" class="view-btn active" data-view="row">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <rect x="2" y="3" width="12" height="2" rx="1"/>
-                <rect x="2" y="7" width="12" height="2" rx="1"/>
-                <rect x="2" y="11" width="12" height="2" rx="1"/>
-              </svg>
-            </button>
-            <button id="gridViewBtn" class="view-btn" data-view="grid">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <rect x="2" y="2" width="5" height="5" rx="1"/>
-                <rect x="9" y="2" width="5" height="5" rx="1"/>
-                <rect x="2" y="9" width="5" height="5" rx="1"/>
-                <rect x="9" y="9" width="5" height="5" rx="1"/>
-              </svg>
-            </button>
+      <div class="match-history-layout">
+        <div class="match-history-main">
+          <div class="match-history-header">
+            <div class="header-top">
+              <h1>Match History</h1>
+              <div class="view-controls">
+                <button id="rowViewBtn" class="view-btn active" data-view="row">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <rect x="2" y="3" width="12" height="2" rx="1"/>
+                    <rect x="2" y="7" width="12" height="2" rx="1"/>
+                    <rect x="2" y="11" width="12" height="2" rx="1"/>
+                  </svg>
+                </button>
+                <button id="gridViewBtn" class="view-btn" data-view="grid">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <rect x="2" y="2" width="5" height="5" rx="1"/>
+                    <rect x="9" y="2" width="5" height="5" rx="1"/>
+                    <rect x="2" y="9" width="5" height="5" rx="1"/>
+                    <rect x="9" y="9" width="5" height="5" rx="1"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="header-controls">
+              <button id="openFolderBtn" class="action-btn">Open Recordings Folder</button>
+              <span class="recording-note">Configure recording in Settings</span>
+            </div>
+          </div>
+          
+          <div class="matches-container">
+            <div id="matchList" class="match-list row-view">
+              <!-- Match items will be dynamically added here -->
+            </div>
           </div>
         </div>
-        <div class="header-controls">
-          <button id="openFolderBtn" class="action-btn">Open Recordings Folder</button>
-          <span class="recording-note">Configure recording in Settings</span>
-        </div>
-      </div>
-      
-      <div class="matches-container">
-        <div id="matchList" class="match-list row-view">
-          <!-- Match items will be dynamically added here -->
+        
+        <div class="match-history-sidebar">
+          <!-- Top Ad Container (400x60) -->
+          <div id="rematchCoach_400x60_history_top" class="ad-container ad-container-top">
+            <!-- Ad will be displayed here -->
+          </div>
+          
+          <!-- About Section -->
+          <div class="about-section">
+            <h3>About Rematch Coach</h3>
+            <div class="about-content">
+              <p><strong>Rematch Coach</strong> is your ultimate gaming companion for analyzing and improving your gameplay performance.</p>
+              
+              <div class="feature-list">
+                <div class="feature-item">
+                  <span class="feature-icon">🎥</span>
+                  <span>Auto-record matches</span>
+                </div>
+                <div class="feature-item">
+                  <span class="feature-icon">⚽</span>
+                  <span>Track goal events</span>
+                </div>
+                <div class="feature-item">
+                  <span class="feature-icon">📊</span>
+                  <span>Performance analytics</span>
+                </div>
+                <div class="feature-item">
+                  <span class="feature-icon">🔍</span>
+                  <span>Video review tools</span>
+                </div>
+              </div>
+              
+              <p class="version-info">Version 1.0.0</p>
+            </div>
+          </div>
+          
+          <!-- Bottom Ad Container (400x300) -->
+          <div id="rematchCoach_400x300_history_bottom" class="ad-container ad-container-bottom">
+            <!-- Ad will be displayed here -->
+          </div>
         </div>
       </div>
     </div>
@@ -217,6 +262,32 @@
     </div>
   </main>
 
+  <!-- Overwolf Ads SDK -->
+  <script src="https://content.overwolf.com/libs/ads/latest/owads.min.js" async onerror="onAdsSDKNotLoaded()" onload="onAdsSDKReady()"></script>
+  <script>
+    // Global callbacks for Ads SDK loading
+    function onAdsSDKNotLoaded() {
+      console.error("Couldn't load owads.min.js!");
+      // Notify the app that ads failed to load
+      if (window.unifiedWindowInstance && window.unifiedWindowInstance.onAdsSDKLoadFailed) {
+        window.unifiedWindowInstance.onAdsSDKLoadFailed();
+      }
+    }
+
+    function onAdsSDKReady() {
+      if (!OwAd) {
+        console.error("OwAd not available after SDK load");
+        onAdsSDKNotLoaded();
+        return;
+      }
+      console.log("Overwolf Ads SDK loaded successfully");
+      // Notify the app that ads SDK is ready
+      if (window.unifiedWindowInstance && window.unifiedWindowInstance.onAdsSDKReady) {
+        window.unifiedWindowInstance.onAdsSDKReady();
+      }
+    }
+  </script>
+  
   <script>
     // Standard Google Universal Analytics code
     (function (i, s, o, g, r, a, m) {

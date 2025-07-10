@@ -22,7 +22,8 @@
     "Storage",
     "Streaming",
     "DesktopStreaming",
-    "Extensions"
+    "Extensions",
+    "Profile"
   ],
   "data": {
     "start_window": "background",

@@ -53,6 +53,10 @@ class UnifiedWindow extends AppWindow {
   private openFolderBtn: HTMLButtonElement;
   private queueAlertModal: HTMLElement;
   
+  // Ad containers
+  private topAdContainer: any = null;
+  private bottomAdContainer: any = null;
+  
   // Video event handlers
   private videoErrorHandler: (e: Event) => void;
   private videoLoadStartHandler: (e: Event) => void;
@@ -102,6 +106,7 @@ class UnifiedWindow extends AppWindow {
     this.setupEventListeners();
     this.setupVideoCaptureLogging();
     this.setupBuildMode();
+    this.initializeAds();
     
     this.loadMatches();
     this.setToggleHotkeyBehavior();
@@ -503,6 +508,7 @@ class UnifiedWindow extends AppWindow {
       this.plyrInstance.destroy();
       this.plyrInstance = null;
     }
+    this.shutdownAds();
   }
 
   private onInfoUpdates(info) {
@@ -1145,10 +1151,118 @@ class UnifiedWindow extends AppWindow {
     const info = await OWGames.getRunningGameInfo();
     return (info && info.isRunning && info.classId) ? info.classId : null;
   }
+
+  private initializeAds(): void {
+    // Don't initialize yet - wait for SDK callback
+    console.log('Ads initialization will happen when SDK is ready');
+  }
+
+  public onAdsSDKReady(): void {
+    console.log('Ads SDK ready, initializing ad containers...');
+    
+    // Initialize top ad container (400x60)
+    try {
+      const topElement = document.getElementById('rematchCoach_400x60_history_top');
+      if (topElement) {
+        this.topAdContainer = new (window as any).OwAd(topElement, {
+          size: { width: 400, height: 60 }
+        });
+        
+        // Add event listeners for top ad
+        this.topAdContainer.addEventListener('display_ad_loaded', () => {
+          console.log('Top ad (400x60) display ad loaded');
+        });
+        
+        this.topAdContainer.addEventListener('play', () => {
+          console.log('Top ad (400x60) started playing');
+        });
+        
+        this.topAdContainer.addEventListener('error', (error: any) => {
+          console.error('Top ad (400x60) error:', error);
+        });
+        
+        console.log('Top ad container (400x60) initialized successfully');
+      } else {
+        console.error('Top ad container element not found');
+      }
+    } catch (error) {
+      console.error('Failed to initialize top ad container:', error);
+    }
+
+    // Initialize bottom ad container (400x300)
+    try {
+      const bottomElement = document.getElementById('rematchCoach_400x300_history_bottom');
+      if (bottomElement) {
+        this.bottomAdContainer = new (window as any).OwAd(bottomElement, {
+          size: { width: 400, height: 300 }
+        });
+        
+        // Add event listeners for bottom ad
+        this.bottomAdContainer.addEventListener('display_ad_loaded', () => {
+          console.log('Bottom ad (400x300) display ad loaded');
+        });
+        
+        this.bottomAdContainer.addEventListener('player_loaded', () => {
+          console.log('Bottom ad (400x300) video player loaded');
+        });
+        
+        this.bottomAdContainer.addEventListener('play', () => {
+          console.log('Bottom ad (400x300) started playing');
+        });
+        
+        this.bottomAdContainer.addEventListener('impression', () => {
+          console.log('Bottom ad (400x300) impression recorded');
+        });
+        
+        this.bottomAdContainer.addEventListener('complete', () => {
+          console.log('Bottom ad (400x300) video completed');
+        });
+        
+        this.bottomAdContainer.addEventListener('error', (error: any) => {
+          console.error('Bottom ad (400x300) error:', error);
+        });
+        
+        console.log('Bottom ad container (400x300) initialized successfully');
+      } else {
+        console.error('Bottom ad container element not found');
+      }
+    } catch (error) {
+      console.error('Failed to initialize bottom ad container:', error);
+    }
+  }
+
+  public onAdsSDKLoadFailed(): void {
+    console.error('Overwolf Ads SDK failed to load - ads will not be available');
+  }
+
+  private shutdownAds(): void {
+    console.log('Shutting down ads...');
+    
+    if (this.topAdContainer) {
+      try {
+        this.topAdContainer.shutdown();
+        this.topAdContainer = null;
+        console.log('Top ad container shut down successfully');
+      } catch (error) {
+        console.error('Error shutting down top ad container:', error);
+      }
+    }
+
+    if (this.bottomAdContainer) {
+      try {
+        this.bottomAdContainer.shutdown();
+        this.bottomAdContainer = null;
+        console.log('Bottom ad container shut down successfully');
+      } catch (error) {
+        console.error('Error shutting down bottom ad container:', error);
+      }
+    }
+  }
 }
 
 // Initialize the unified window
 const unifiedWindowInstance = UnifiedWindow.instance();
 
-// Expose to global window object for background controller access
+// Expose to global window object for background controller access and ads SDK callbacks
 (window as any).UnifiedWindow = UnifiedWindow;
+(window as any).unifiedWindowInstance = unifiedWindowInstance;
