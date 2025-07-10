@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run:*)",
+      "Bash(npm install:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(rm:*)",
+      "WebFetch(domain:dev.overwolf.com)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(python3:*)",
+      "Bash(npx tsc:*)"
+    ],
+    "deny": []
+  }
+}

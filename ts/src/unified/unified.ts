@@ -61,6 +61,9 @@ class UnifiedWindow extends AppWindow {
   private videoErrorHandler: (e: Event) => void;
   private videoLoadStartHandler: (e: Event) => void;
   
+  // Video composition cache
+  private combinedVideoCache: Map<string, string> = new Map();
+  
   // Tab elements
   private historyTab: HTMLElement;
   private liveTab: HTMLElement;
@@ -238,6 +241,10 @@ class UnifiedWindow extends AppWindow {
     
     this.plyrInstance.on('loadstart', () => {
       console.log('Plyr: Load start');
+    });
+    
+    this.plyrInstance.on('ended', () => {
+      console.log('Plyr: Video ended');
     });
     
   }
@@ -462,13 +469,6 @@ class UnifiedWindow extends AppWindow {
     // Don't start if already running
     if (this._gameEventsListener && this._isGameRunning) {
       console.log('Game events listener already running, skipping initialization');
-      return;
-    }
-    
-    // Only start game events in debug mode
-    const isDebugMode = process.env.DEBUG_MODE;
-    if (!isDebugMode) {
-      console.log('Game events disabled in production mode');
       return;
     }
     
@@ -737,18 +737,28 @@ class UnifiedWindow extends AppWindow {
   private async openVideoModal(match: MatchSession): Promise<void> {
     console.log("Opening video modal for match:", JSON.stringify(match));
     
-    if (!match.videoPath) {
+    if (!match.videoPath && (!match.videoParts || match.videoParts.length === 0)) {
       alert('No video available for this match');
       return;
     }
     
+    // Show modal immediately with loading state
+    this.videoModal.style.display = 'flex';
+    this.modalTitle.textContent = `${match.outcome || 'Match'} - ${this.formatDate(match.startTime)}`;
+    
     // Clean up any existing event listeners first
     this.cleanupVideoEventListeners();
     
-    this.modalTitle.textContent = `${match.outcome || 'Match'} - ${this.formatDate(match.startTime)}`;
+    // Show loading message if we have multiple parts
+    if (match.videoParts && match.videoParts.length > 1) {
+      this.showLoadingMessage('Combining video parts...');
+    }
     
     const videoFilePath = await this.findVideoFile(match);
     console.log('Found video file path:', videoFilePath);
+    
+    // Hide loading message
+    this.hideLoadingMessage();
     
     // Create markers from goals
     const markers = this.createMarkersFromGoals(match.goals);
@@ -781,8 +791,6 @@ class UnifiedWindow extends AppWindow {
       // Still display timestamps for simulated videos
       this.displayTimestamps(match.goals, match.startTime);
     }
-    
-    this.videoModal.style.display = 'flex';
   }
 
   private cleanupVideoEventListeners(): void {
@@ -818,6 +826,11 @@ class UnifiedWindow extends AppWindow {
     const errorDiv = document.getElementById('video-error-message');
     if (errorDiv) {
       errorDiv.style.display = 'none';
+    }
+    
+    const loadingDiv = document.getElementById('video-loading-message');
+    if (loadingDiv) {
+      loadingDiv.style.display = 'none';
     }
   }
 
@@ -997,8 +1010,48 @@ class UnifiedWindow extends AppWindow {
     errorDiv.style.display = 'block';
   }
 
+  private showLoadingMessage(message: string): void {
+    this.videoPlayer.style.display = 'none';
+    
+    let loadingDiv = document.getElementById('video-loading-message');
+    if (!loadingDiv) {
+      loadingDiv = document.createElement('div');
+      loadingDiv.id = 'video-loading-message';
+      loadingDiv.style.cssText = `
+        background: #1a1a1a;
+        border: 2px dashed #4CAF50;
+        border-radius: 8px;
+        padding: 40px;
+        text-align: center;
+        color: #ccc;
+        margin-bottom: 20px;
+      `;
+      this.videoPlayer.parentNode!.insertBefore(loadingDiv, this.videoPlayer);
+    }
+    
+    loadingDiv.innerHTML = `
+      <h3 style="color: #4CAF50; margin-top: 0;">⏳ ${message}</h3>
+      <p>Please wait while we prepare your video...</p>
+    `;
+    loadingDiv.style.display = 'block';
+  }
+
+  private hideLoadingMessage(): void {
+    const loadingDiv = document.getElementById('video-loading-message');
+    if (loadingDiv) {
+      loadingDiv.style.display = 'none';
+    }
+    this.videoPlayer.style.display = 'block';
+  }
+
   private async findVideoFile(match: MatchSession): Promise<string | null> {
     console.log('Looking for video file for match:', match.id);
+    
+    // Check if we have multi-part videos stored
+    if (match.videoParts && match.videoParts.length > 0) {
+      console.log('Found multi-part video with', match.videoParts.length, 'parts');
+      return await this.combineVideoParts(match.videoParts);
+    }
     
     if (match.videoPath && (match.videoPath.includes('.mp4') || match.videoPath.includes('.webm') || match.videoPath.includes('.avi'))) {
       console.log('Video path already has file extension:', match.videoPath);
@@ -1015,14 +1068,19 @@ class UnifiedWindow extends AppWindow {
           const matchId = match.id;
           const expectedVideoName = `REMATCH ${this.formatVideoDate(match.startTime)}`;
           
-          const matchingVideo = result.videos.find(videoUrl => {
-            console.log('Checking video URL:', videoUrl);
+          // Look for multiple parts of the same video
+          const matchingVideos = result.videos.filter(videoUrl => {
             return videoUrl.includes(matchId) || videoUrl.includes(expectedVideoName.replace(/[\s:]/g, '-'));
           });
           
-          if (matchingVideo) {
-            console.log('Found matching video:', matchingVideo);
-            resolve(matchingVideo);
+          if (matchingVideos.length > 1) {
+            console.log('Found multiple video parts:', matchingVideos);
+            // Sort by filename to ensure correct order
+            matchingVideos.sort();
+            this.combineVideoParts(matchingVideos).then(resolve);
+          } else if (matchingVideos.length === 1) {
+            console.log('Found single matching video:', matchingVideos[0]);
+            resolve(matchingVideos[0]);
           } else {
             console.log('No exact match found, looking for videos around match time');
             const likelyPath = `RematchCoach/${matchId}/REMATCH ${this.formatVideoDate(match.startTime)}.mp4`;
@@ -1036,6 +1094,54 @@ class UnifiedWindow extends AppWindow {
       });
     });
   }
+
+  private async combineVideoParts(videoParts: string[]): Promise<string> {
+    console.log('Combining video parts:', videoParts);
+    
+    // Check if we already have a combined video cached
+    const cacheKey = videoParts.join('|');
+    if (this.combinedVideoCache.has(cacheKey)) {
+      console.log('Using cached combined video');
+      return this.combinedVideoCache.get(cacheKey)!;
+    }
+    
+    // Convert paths to proper URLs for Overwolf API
+    const videoUrls = videoParts.map(part => this.getVideoUrl(part));
+    
+    return new Promise((resolve, reject) => {
+      console.log('Creating video composition from parts:', videoUrls);
+      
+      // Use Overwolf's createVideoCompositionFiles to concatenate videos
+      overwolf.media.videos.createVideoCompositionFiles(
+        videoUrls,
+        `RematchCoach/combined_${Date.now()}.mp4`,
+        (result) => {
+          console.log('Video composition result:', result);
+          
+          if (result.success && result.url) {
+            console.log('Successfully created combined video:', result.url);
+            
+            // Cache the result
+            this.combinedVideoCache.set(cacheKey, result.url);
+            
+            // Clean up cache after 30 minutes
+            setTimeout(() => {
+              this.combinedVideoCache.delete(cacheKey);
+            }, 30 * 60 * 1000);
+            
+            resolve(result.url);
+          } else {
+            console.error('Failed to create video composition:', result.error);
+            
+            // Fallback to first part if composition fails
+            console.log('Falling back to first video part');
+            resolve(videoUrls[0]);
+          }
+        }
+      );
+    });
+  }
+
 
   private formatVideoDate(timestamp: number): string {
     const date = new Date(timestamp);

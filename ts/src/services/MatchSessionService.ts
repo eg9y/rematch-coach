@@ -24,6 +24,7 @@ export interface MatchSession {
   };
   goals: GoalEvent[];
   videoPath?: string;
+  videoParts?: string[];
   thumbnailPath?: string;
 }
 
@@ -269,8 +270,17 @@ export class MatchSessionService {
     
     // Update current match if it matches
     if (this.currentMatch && this.currentMatch.id === matchId) {
-      this.currentMatch.videoPath = videoUrl;
-      console.log('Updated current match video path');
+      if (!this.currentMatch.videoParts) {
+        this.currentMatch.videoParts = [];
+      }
+      this.currentMatch.videoParts.push(videoUrl);
+      
+      // Set videoPath to the first part for backwards compatibility
+      if (!this.currentMatch.videoPath) {
+        this.currentMatch.videoPath = videoUrl;
+      }
+      
+      console.log('Updated current match video path, parts:', this.currentMatch.videoParts.length);
     }
     
     // Update stored matches
@@ -279,12 +289,20 @@ export class MatchSessionService {
       const matchIndex = matches.findIndex(m => m.id === matchId);
       
       if (matchIndex !== -1) {
-        matches[matchIndex].videoPath = videoUrl;
+        if (!matches[matchIndex].videoParts) {
+          matches[matchIndex].videoParts = [];
+        }
+        matches[matchIndex].videoParts.push(videoUrl);
+        
+        // Set videoPath to the first part for backwards compatibility
+        if (!matches[matchIndex].videoPath) {
+          matches[matchIndex].videoPath = videoUrl;
+        }
         
         // Save back to storage
         const storageKey = 'rematch_matches';
         localStorage.setItem(storageKey, JSON.stringify(matches));
-        console.log('Updated stored match video path in storage');
+        console.log('Updated stored match video path in storage, parts:', matches[matchIndex].videoParts.length);
       } else {
         console.warn('Match not found in storage:', matchId);
       }

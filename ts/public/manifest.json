@@ -10,8 +10,9 @@
     "dock_button_title": "Rematch Coach",
     "icon": "icons/IconMouseOver.png",
     "icon_gray": "icons/IconMouseNormal.png",
-    "launcher_icon": "icons/desktop-icon.ico",
-    "window_icon": "icons/IconMouseOver.png"
+    "launcher_icon": "icons/launcher_icon.ico",
+    "window_icon": "icons/WindowIcon.png",
+    "tray_icon": "icons/tray_icon.ico"
   },
   "permissions": [
     "Hotkeys",
